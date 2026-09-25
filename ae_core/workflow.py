@@ -20,7 +20,7 @@ AGENTS = {"codex", "claude", "opencode"}
 
 def command(args, *, cwd=None, agent=False, timeout=120, check=True):
     if agent:
-        args = ["runuser", "-u", AGENT_USER, "--", *args]
+        args = ["/usr/sbin/runuser", "-u", AGENT_USER, "--", *args]
     result = subprocess.run(args, cwd=cwd, text=True, capture_output=True,
                             timeout=timeout, check=False)
     if check and result.returncode:
@@ -490,8 +490,36 @@ def advance(task_id):
 
 def fail(task_id, reason):
     with store.locked_task(task_id) as (conn, task):
-        store.update(conn, task_id, state="needs_you", error=reason)
-        store.event(conn, task_id, "needs_you", {"reason": reason})
+        store.update(conn, task_id, state="needs_you", error=reason,
+                     failed_stage=task["state"])
+        store.event(conn, task_id, "needs_you", {"reason": reason,
+                                                 "failed_stage": task["state"]})
+    return store.get(task_id)
+
+
+def retry_publish(task_id):
+    task = store.get(task_id)
+    if (task["state"] != "needs_you" or task["failed_stage"] not in
+            {"publishing", "publish_pending"} or task["cancel_requested"]):
+        raise ValueError("Task is not waiting for a publishing retry")
+    if not task["commit_sha"] or not task["branch"] or not task["worktree"]:
+        raise ValueError("Publishing inputs are incomplete")
+    if not task["checks"] or any(item["exit_code"] != 0 for item in task["checks"]):
+        raise ValueError("Validation must pass before publishing")
+    # First reconcile the external state; PR creation may have succeeded before
+    # the previous attempt lost its response.
+    url = existing_pr(task, load_config())
+    with store.locked_task(task_id) as (conn, current):
+        if current["state"] != "needs_you":
+            return current
+        if url:
+            store.update(conn, task_id, state="done", pr_url=url, slot=None,
+                         error=None, failed_stage=None)
+            store.event(conn, task_id, "draft_pr_reconciled", {"url": url})
+        else:
+            store.update(conn, task_id, state="publishing", error=None,
+                         failed_stage=None)
+            store.event(conn, task_id, "publish_retry_requested")
     return store.get(task_id)
 
 
@@ -514,7 +542,8 @@ def cancel(task_id):
             if hapi.session(session_id).get("active"):
                 return fail(task_id, f"Cancellation requested; session {session_id} termination not verified")
     with store.locked_task(task_id) as (conn, current):
-        store.update(conn, task_id, state="cancelled", slot=None)
+        store.update(conn, task_id, state="cancelled", slot=None,
+                     error=None, failed_stage=None)
         store.event(conn, task_id, "cancelled")
     return store.get(task_id)
 

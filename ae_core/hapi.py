@@ -56,7 +56,8 @@ class HapiClient:
 
     def spawn(self, machine_id, directory, agent, model=None):
         path = f"/api/machines/{urllib.parse.quote(machine_id, safe='')}/spawn"
-        body = {"directory": directory, "agent": agent, "startingMode": "remote"}
+        body = {"directory": directory, "agent": agent, "startingMode": "remote",
+                "permissionMode": "default"}
         if model:
             body["model"] = model
         result = self.request("POST", path, body)

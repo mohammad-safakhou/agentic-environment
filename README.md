@@ -34,7 +34,7 @@ The exact provider prompts are owned by those official CLIs. HAPI uses a separat
 The trusted draft-PR stage needs a GitHub sign-in under its own config directory:
 
 ```bash
-sudo GH_CONFIG_DIR=/var/lib/agentic-environment/gh gh auth login
+sudo GH_CONFIG_DIR=/var/lib/agentic-environment/gh /opt/agentic-environment/bin/gh auth login
 ```
 
 Register a GitHub repository and at least one validation command. The check image is initially `python:3.12.7-slim`; change it in `/etc/agentic-environment/config.json` for other languages. Commands run without network access in a resource-limited container with the worktree mounted read-only.
@@ -47,6 +47,7 @@ Register a GitHub repository and at least one validation command. The check imag
 `./ae connect-windmill` installs the one-minute task tick, a five-minute health check and the weekly summary schedule. `f/ae/submit` is the generated task form; `f/ae/cancel` stops a task. HAPI remains the place to steer sessions and answer approvals. A task requiring independent review waits when no second provider is available; `f/ae/waive_review` records an explicit waiver. After accepting a draft PR, use `f/ae/accept` to record whether you corrected its code; unmeasured costs are reported as unknown.
 If a task stage is running when cancellation is requested, the request is recorded and applied at the next safe boundary. An ambiguous spawn or PR publication must be reconciled before the task can release its execution slot.
 `f/ae/fallback` starts a new attempt with the configured fallback worker after a task has stopped. It includes the exact commit, checks, review and blocker in a bounded handoff.
+`f/ae/retry_publish` reconciles a failed or interrupted draft PR stage against GitHub before scheduling a retry; it requires a successful validation record and a prior publishing failure.
 Windmill also includes `f/ae/health_check` and a harmless `f/ae/example` script. Recurring coding tasks can be scheduled from `f/ae/submit` with fixed parameters; no external app connector is enabled by default.
 
 After the first Beszel login, add a system and run `./ae enable-monitoring`. Paste the displayed public key and agent token, then use `/beszel_socket/beszel.sock` as its Host / IP in Beszel.

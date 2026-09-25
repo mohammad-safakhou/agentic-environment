@@ -38,7 +38,7 @@ for name in api_url api_token windmill_url; do
   ../bin/wmill variable push "$scratch/$name.variable.yaml" "f/ae/$name" --plain-secrets >/dev/null
 done
 ../bin/wmill generate-metadata f/ae --yes --parallel 1
-for script in f/ae/submit.py f/ae/tick.py f/ae/cancel.py f/ae/waive_review.py f/ae/fallback.py f/ae/weekly_summary.py f/ae/accept.py f/ae/health_check.py f/ae/example.py; do
+for script in f/ae/submit.py f/ae/tick.py f/ae/cancel.py f/ae/waive_review.py f/ae/fallback.py f/ae/retry_publish.py f/ae/weekly_summary.py f/ae/accept.py f/ae/health_check.py f/ae/example.py; do
   ../bin/wmill script push "$script"
 done
 for name in tick weekly_summary health_check; do

@@ -23,7 +23,7 @@ for port in 3000 3006 5433 8000 8090 8765 9898; do
 done
 
 apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git gh docker.io docker-compose-v2 python3 python3-venv python3-pip jq restic postgresql-client sqlite3 rsync
+DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git docker.io docker-compose-v2 python3 python3-venv python3-pip jq restic postgresql-client sqlite3 rsync
 systemctl enable --now docker
 if [[ "$(pwd)" != /opt/agentic-environment ]]; then
   install -d -m 755 /opt/agentic-environment
@@ -70,6 +70,14 @@ ln -sfn ../runtime/npm/node_modules/@openai/codex/bin/codex.js bin/codex
 ln -sfn ../runtime/npm/node_modules/@anthropic-ai/claude-code/bin/claude.exe bin/claude
 ln -sfn ../runtime/npm/node_modules/opencode-ai/bin/opencode.exe bin/opencode
 ln -sfn ../runtime/npm/node_modules/windmill-cli/esm/main.js bin/wmill
+if [[ ! -x "runtime/gh_${GH_VERSION}_linux_amd64/bin/gh" ]]; then
+  curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" -o /tmp/ae-gh.tar.gz
+  curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_checksums.txt" -o /tmp/ae-gh-checksums.txt
+  grep " gh_${GH_VERSION}_linux_amd64.tar.gz$" /tmp/ae-gh-checksums.txt | \
+    sed "s/gh_${GH_VERSION}_linux_amd64.tar.gz/ae-gh.tar.gz/" | (cd /tmp && sha256sum -c -)
+  tar -xzf /tmp/ae-gh.tar.gz -C runtime
+fi
+ln -sfn "../runtime/gh_${GH_VERSION}_linux_amd64/bin/gh" bin/gh
 python3 -m venv .venv
 .venv/bin/pip install --disable-pip-version-check -r requirements.txt
 

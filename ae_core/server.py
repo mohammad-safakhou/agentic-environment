@@ -90,6 +90,11 @@ class Handler(BaseHTTPRequestHandler):
                     return self.respond(200, {"task": workflow.waive_review(parts[1])})
                 if parts[2] == "fallback":
                     return self.respond(200, {"task": workflow.fallback_attempt(parts[1])})
+                if parts[2] == "retry-publish":
+                    with store.operation_lock(parts[1]) as acquired:
+                        if not acquired:
+                            return self.respond(409, {"error": "Task operation already running"})
+                        return self.respond(200, {"task": workflow.retry_publish(parts[1])})
                 if parts[2] == "accept":
                     payload = self.body()
                     if not isinstance(payload.get("human_code_correction"), bool):

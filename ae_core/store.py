@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS ae.tasks (
   accepted_at timestamptz,
   human_code_correction boolean,
   error text,
+  failed_stage text,
   cancel_requested boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -58,6 +59,7 @@ ALTER TABLE ae.tasks ADD COLUMN IF NOT EXISTS selected_model text;
 ALTER TABLE ae.tasks ADD COLUMN IF NOT EXISTS commit_sha text;
 ALTER TABLE ae.tasks ADD COLUMN IF NOT EXISTS human_code_correction boolean;
 ALTER TABLE ae.tasks ADD COLUMN IF NOT EXISTS cancel_requested boolean NOT NULL DEFAULT false;
+ALTER TABLE ae.tasks ADD COLUMN IF NOT EXISTS failed_stage text;
 CREATE UNIQUE INDEX IF NOT EXISTS ae_slot_unique ON ae.tasks(slot) WHERE slot IS NOT NULL;
 CREATE TABLE IF NOT EXISTS ae.events (
   id bigserial PRIMARY KEY,

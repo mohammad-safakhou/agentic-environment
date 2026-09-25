@@ -41,4 +41,5 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(command.call_args_list[0].args[0][-1], "implementation")
         self.assertEqual(command.call_args_list[1].args[0][-1], "review")
         store.update.assert_called_once_with(locked.__enter__.return_value[0], "task-id",
-                                             state="cancelled", slot=None)
+                                             state="cancelled", slot=None,
+                                             error=None, failed_stage=None)
