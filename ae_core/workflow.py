@@ -154,6 +154,8 @@ def openrouter_budget(config, task):
 
 def requires_review(task, config):
     policy = task["review_policy"]
+    if policy == "skip":
+        return False
     if policy == "required":
         return True
     changed = command(["git", "diff", "--name-only", f"origin/{task['base_branch']}...HEAD"],
@@ -469,6 +471,12 @@ def advance(task_id):
             return store.get(task_id)
         return fail(task_id, "Repair message delivery unresolved")
     if state == "publishing":
+        if os.environ.get("AE_PUBLISH_MODE") == "local":
+            with store.locked_task(task_id) as (conn, current):
+                store.update(conn, task_id, state="done", slot=None)
+                store.event(conn, task_id, "local_result_ready",
+                            {"branch": task["branch"], "commit": task["commit_sha"]})
+            return store.get(task_id)
         with store.locked_task(task_id) as (conn, current):
             store.update(conn, task_id, state="publish_pending")
         url = publish(task, config)

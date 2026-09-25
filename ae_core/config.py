@@ -21,5 +21,5 @@ def repo_config(config, name):
     path = Path(repo["path"]).resolve(strict=True)
     root = Path(os.environ.get("AE_REPO_ROOT", "/home/ae-agent/repos")).resolve()
     if not path.is_relative_to(root) or not (path / ".git").exists():
-        raise ValueError("Repository must be a checkout under /home/ae-agent/repos")
+        raise ValueError(f"Repository must be a checkout under {root}")
     return repo, path

@@ -1,16 +1,18 @@
 import json
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
 
-ROOT = Path("/home/ae-agent/repos")
-CONFIG = Path("/etc/agentic-environment/config.json")
+ROOT = Path(os.environ.get("AE_REPO_ROOT", "/home/ae-agent/repos"))
+CONFIG = Path(os.environ.get("AE_CONFIG", "/etc/agentic-environment/config.json"))
+AGENT_USER = os.environ.get("AE_AGENT_USER", "ae-agent")
 
 
 def run(args):
-    return subprocess.run(["runuser", "-u", "ae-agent", "--", *args],
+    return subprocess.run(["/usr/sbin/runuser", "-u", AGENT_USER, "--", *args],
                           check=True, text=True, capture_output=True).stdout.strip()
 
 

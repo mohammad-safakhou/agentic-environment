@@ -2,7 +2,9 @@
 
 A private, single-server environment for two concurrent coding tasks. Homepage links to Windmill, HAPI, Beszel and Backrest. Windmill submits and schedules tasks; HAPI hosts coding sessions and approvals. The integration API currently advances task stages and keeps task-to-session mappings in its own PostgreSQL schema. Git worktrees hold code changes.
 
-An isolated one-slot pilot on a smaller shared server is documented in [PILOT.md](PILOT.md).
+A completed one-slot pilot on a smaller shared server is documented in [PILOT.md](PILOT.md).
+
+The one-task install path for that 4 GB server is in [SMALL_SERVER.md](SMALL_SERVER.md). Use `./ae-small setup` for that profile; the full `./ae setup` below has different resource requirements.
 
 ## Requirements
 

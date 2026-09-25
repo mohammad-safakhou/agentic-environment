@@ -1,10 +1,36 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from ae_core.workflow import cancel, parse_review, safe_name
+from ae_core.workflow import advance, cancel, parse_review, requires_review, safe_name
 
 
 class WorkflowTests(unittest.TestCase):
+    @patch("ae_core.workflow.command")
+    def test_explicit_review_skip_never_requests_another_provider(self, command):
+        self.assertFalse(requires_review({"review_policy": "skip"}, {}))
+        command.assert_not_called()
+
+    @patch.dict("os.environ", {"AE_PUBLISH_MODE": "local"})
+    @patch("ae_core.workflow.publish")
+    @patch("ae_core.workflow.store")
+    @patch("ae_core.workflow.load_config", return_value={})
+    def test_local_result_never_publishes(self, load_config, store, publish):
+        task = {"state": "publishing", "cancel_requested": False,
+                "branch": "codex/test", "commit_sha": "abc123"}
+        store.get.return_value = task
+        locked = MagicMock()
+        locked.__enter__.return_value = (MagicMock(), task)
+        store.locked_task.return_value = locked
+
+        advance("task-id")
+
+        publish.assert_not_called()
+        store.update.assert_called_once_with(locked.__enter__.return_value[0],
+                                             "task-id", state="done", slot=None)
+        store.event.assert_called_once_with(locked.__enter__.return_value[0],
+                                            "task-id", "local_result_ready",
+                                            {"branch": "codex/test", "commit": "abc123"})
+
     def test_repository_name_rejects_path_escape(self):
         for value in ("../etc", "x/../y", "-bad", ""):
             with self.assertRaises(ValueError):

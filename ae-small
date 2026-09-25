@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$(realpath "$0")")"
+command_name="${1:-help}"
+shift || true
+
+if [[ "$command_name" != setup && "$command_name" != preflight && -f /opt/ae-small/versions.env ]]; then
+  cd /opt/ae-small
+fi
+
+case "$command_name" in
+  setup|preflight)
+    if [[ $(id -u) == 0 ]]; then
+      exec bash scripts/setup-small.sh "--$command_name" "$@"
+    fi
+    exec sudo bash scripts/setup-small.sh "--$command_name" "$@"
+    ;;
+  doctor)
+    if [[ $(id -u) != 0 ]]; then exec sudo "$PWD/ae-small" doctor; fi
+    exec bash scripts/doctor-small.sh
+    ;;
+  status)
+    systemctl --no-pager --full status ae-small-api ae-small-hub ae-small-runner ae-small-windmill-server ae-small-windmill-worker || true
+    docker ps --filter name='^/ae-small-postgres$' --format '{{.Names}} {{.Status}}'
+    ;;
+  start)
+    if [[ $(id -u) != 0 ]]; then exec sudo "$PWD/ae-small" start; fi
+    docker start ae-small-postgres >/dev/null
+    systemctl start ae-small-windmill-server ae-small-windmill-worker ae-small-hub ae-small-runner ae-small-api
+    ;;
+  stop)
+    if [[ $(id -u) != 0 ]]; then exec sudo "$PWD/ae-small" stop; fi
+    systemctl stop ae-small-api ae-small-runner ae-small-windmill-worker ae-small-windmill-server ae-small-hub
+    docker stop ae-small-postgres >/dev/null
+    ;;
+  register)
+    if [[ $(id -u) != 0 ]]; then exec sudo "$PWD/ae-small" register "$@"; fi
+    exec env AE_CONFIG=/etc/ae-small/config.json AE_REPO_ROOT=/home/ae-lab/repos AE_AGENT_USER=ae-lab \
+      python3 scripts/register.py "$@"
+    ;;
+  connect-windmill)
+    if [[ $(id -u) != 0 ]]; then exec sudo "$PWD/ae-small" connect-windmill "$@"; fi
+    exec env HOME=/etc/ae-small/wmill-cli AE_WINDMILL_URL=http://127.0.0.1:38000 \
+      AE_WINDMILL_API_URL=http://127.0.0.1:38765 \
+      AE_WINDMILL_INTERNAL_URL=http://127.0.0.1:38000 \
+      PATH="$PWD/bin:$PWD/runtime/node/bin:$PATH" bash scripts/connect-windmill.sh "$@"
+    ;;
+  *)
+    cat <<'EOF'
+Usage: ./ae-small {preflight|setup|doctor|status|start|stop|register|connect-windmill}
+EOF
+    ;;
+esac

@@ -7,7 +7,8 @@ if [[ "${1:-}" == "" ]]; then
   exit 1
 fi
 host="$(sed -n 's/^TAILSCALE_HOST=//p' .env | head -1)"
-bin/wmill workspace add agent-environment "$1" "https://$host:8444"
+windmill_url="${AE_WINDMILL_URL:-https://$host:8444}"
+bin/wmill workspace add agent-environment "$1" "$windmill_url"
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 chmod 700 "$scratch"
@@ -23,9 +24,9 @@ for line in pathlib.Path('.env').read_text().splitlines():
         values[key] = value
 token = values['AE_API_TOKEN']
 settings = {
-    'api_url': ('http://host.docker.internal:8765', False),
+    'api_url': (os.environ.get('AE_WINDMILL_API_URL', 'http://host.docker.internal:8765'), False),
     'api_token': (token, True),
-    'windmill_url': ('http://windmill_server:8000', False),
+    'windmill_url': (os.environ.get('AE_WINDMILL_INTERNAL_URL', 'http://windmill_server:8000'), False),
 }
 for name, (value, secret) in settings.items():
     path = pathlib.Path(sys.argv[1]) / f'{name}.variable.yaml'
