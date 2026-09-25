@@ -157,6 +157,7 @@ DATABASE_URL=$database_url
 BASE_URL=http://127.0.0.1:38000
 WINDMILL_DIR=/home/ae-lab/windmill
 UV_PYTHON_INSTALL_DIR=/opt/ae-small/python
+UV_PATH=/opt/ae-small/bin/uv
 PYTHON_PATH=$python_path
 PATH=/opt/ae-small/bin:/opt/ae-small/runtime/node/bin:/usr/local/bin:/usr/bin:/bin
 EOF
