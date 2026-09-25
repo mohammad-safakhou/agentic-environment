@@ -12,12 +12,17 @@ class WorkflowTests(unittest.TestCase):
 
     @patch.dict("os.environ", {"AE_PUBLISH_MODE": "local"})
     @patch("ae_core.workflow.publish")
+    @patch("ae_core.workflow.command")
+    @patch("ae_core.workflow.HapiClient")
     @patch("ae_core.workflow.store")
     @patch("ae_core.workflow.load_config", return_value={})
-    def test_local_result_never_publishes(self, load_config, store, publish):
+    def test_local_result_stops_session_without_publishing(self, load_config, store, client_type,
+                                                           command, publish):
         task = {"state": "publishing", "cancel_requested": False,
-                "branch": "codex/test", "commit_sha": "abc123"}
+                "branch": "codex/test", "commit_sha": "abc123", "session_id": "session-1"}
         store.get.return_value = task
+        client_type.return_value.session.side_effect = [{"active": True, "thinking": False},
+                                                        {"active": False}]
         locked = MagicMock()
         locked.__enter__.return_value = (MagicMock(), task)
         store.locked_task.return_value = locked
@@ -25,6 +30,7 @@ class WorkflowTests(unittest.TestCase):
         advance("task-id")
 
         publish.assert_not_called()
+        command.assert_called_once_with(["hapi", "runner", "stop-session", "session-1"], agent=True)
         store.update.assert_called_once_with(locked.__enter__.return_value[0],
                                              "task-id", state="done", slot=None)
         store.event.assert_called_once_with(locked.__enter__.return_value[0],

@@ -472,6 +472,17 @@ def advance(task_id):
         return fail(task_id, "Repair message delivery unresolved")
     if state == "publishing":
         if os.environ.get("AE_PUBLISH_MODE") == "local":
+            for session_id in (task.get("session_id"), task.get("review_session_id")):
+                if not session_id:
+                    continue
+                hapi = HapiClient()
+                session = hapi.session(session_id)
+                if session.get("active"):
+                    if session.get("thinking"):
+                        hapi.abort(session_id)
+                    command(["hapi", "runner", "stop-session", session_id], agent=True)
+                    if hapi.session(session_id).get("active"):
+                        return fail(task_id, f"Local result ready; session {session_id} termination not verified")
             with store.locked_task(task_id) as (conn, current):
                 store.update(conn, task_id, state="done", slot=None)
                 store.event(conn, task_id, "local_result_ready",
