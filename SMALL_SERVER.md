@@ -27,6 +27,16 @@ ssh -N -L 38000:127.0.0.1:38000 -L 39444:127.0.0.1:39444 agentic@2.28.57.254
 
 Open `http://127.0.0.1:38000` for Windmill and `http://127.0.0.1:39444` for HAPI. Windmill's initial login is `admin@windmill.dev` / `changeme`; complete its first-run setup, replace that administrator credential immediately, and create a workspace. The interfaces are not exposed on the server's public IP.
 
+In Windmill, note the workspace ID from the workspace switcher. Create a user token from your username menu → **Account settings** → **Tokens**; the CLI connection below asks for it. Windmill shows the token only once, so keep it in your own terminal/password manager and do not put it in the repository.
+
+HAPI needs no separate account or manual runner setup. The installer creates its hub and runner and generates an access token. To see the token for your browser login, run this on the server:
+
+```bash
+sudo jq -r '.cliApiToken' /home/ae-lab/hapi-hub/settings.json
+```
+
+Enter that token in the HAPI page opened through the SSH tunnel. Keep it private: it also authenticates the runner. HAPI will show sessions after a task starts.
+
 ## Sign in and try one task
 
 Sign the `ae-lab` runner into **one** Codex account. The CLI prints a URL and device code; complete the sign-in in a browser on your computer. Do not paste credentials into the server chat or repository.
