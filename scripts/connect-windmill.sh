@@ -14,6 +14,7 @@ trap 'rm -rf "$scratch"' EXIT
 chmod 700 "$scratch"
 python3 - "$scratch" <<'PY'
 import json
+import os
 import pathlib
 import sys
 
