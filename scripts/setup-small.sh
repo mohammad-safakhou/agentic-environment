@@ -15,7 +15,7 @@ fi
 if id -nG ae-lab | tr ' ' '\n' | grep -Eq '^(sudo|docker)$'; then
   echo 'Remove ae-lab from sudo and docker groups before setup' >&2; exit 1
 fi
-for binary in curl docker git jq python3 rsync sha256sum ss systemctl tar; do
+for binary in curl docker git jq python3 rsync sha256sum ss sudo systemctl tar; do
   command -v "$binary" >/dev/null || { echo "Missing command: $binary" >&2; exit 1; }
 done
 systemctl is-active --quiet docker || { echo 'The existing Docker service must be running' >&2; exit 1; }
@@ -104,6 +104,15 @@ ln -sfn ../npm/node_modules/windmill-cli/esm/main.js bin/wmill
 for binary in bin/hapi bin/codex bin/wmill; do
   [[ -x "$binary" ]] || { echo "$binary did not install correctly" >&2; exit 1; }
 done
+if [[ ! -x /home/ae-lab/.local/bin/claude ||
+      "$(sudo -u ae-lab -H /home/ae-lab/.local/bin/claude --version)" != "${CLAUDE_VERSION} (Claude Code)" ]]; then
+  claude_installer="$(mktemp /tmp/ae-small-claude-install.XXXXXX)"
+  curl -fsSL https://claude.ai/install.sh -o "$claude_installer"
+  sudo -u ae-lab -H bash "$claude_installer" "$CLAUDE_VERSION"
+  rm -f "$claude_installer"
+fi
+ln -sfn /home/ae-lab/.local/bin/claude bin/claude
+[[ -x bin/claude ]] || { echo 'Claude Code did not install correctly' >&2; exit 1; }
 if [[ ! -x bin/gh ]]; then
   archive="$(mktemp /tmp/ae-small-gh.XXXXXX)"
   checksums="$(mktemp /tmp/ae-small-gh-checksums.XXXXXX)"

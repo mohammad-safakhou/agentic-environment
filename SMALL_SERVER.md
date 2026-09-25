@@ -2,7 +2,7 @@
 
 This profile runs the core task path on Ubuntu x86-64 with 2 CPUs and 4 GB RAM. It is for the existing shared server, where the machine owner has already created the `ae-lab` account with `/home/ae-lab` as its home and no `sudo` or `docker` group membership. Account creation remains a manual owner step. The full `./ae setup` profile is separate.
 
-The small profile installs **only** a project PostgreSQL container, one native Windmill server and worker, HAPI hub and runner, and the integration API. All web and API ports bind to `127.0.0.1`. It uses one task slot, a one-CPU/one-GB validation limit, and a local result mode: successful work stays in its server worktree and is never pushed to GitHub. It does not install Tailscale, Homepage, Beszel, Backrest, or automatic off-server backup.
+The small profile installs a project PostgreSQL container, one native Windmill server and worker, HAPI hub and runner, the integration API, and the Codex and Claude Code CLIs. All web and API ports bind to `127.0.0.1`. It uses one task slot, a one-CPU/one-GB validation limit, and a local result mode: successful work stays in its server worktree and is never pushed to GitHub. It does not install Tailscale, Homepage, Beszel, Backrest, or automatic off-server backup.
 
 ## Install
 
@@ -37,19 +37,29 @@ sudo jq -r '.cliApiToken' /home/ae-lab/hapi-hub/settings.json
 
 Enter that token in the HAPI page opened through the SSH tunnel. Keep it private: it also authenticates the runner. HAPI will show sessions after a task starts.
 
+### Phone and other devices on the pilot server
+
+The pilot server also has Tailscale Serve configured. Join your phone and other computers to the same tailnet, then open:
+
+- HAPI: `https://ae-small-hapi.taile1040e.ts.net:10000/`
+- Windmill: `https://ae-small-hapi.taile1040e.ts.net:8443/`
+
+Use the HAPI URL and the hub token above to pair the HAPI mobile app. Windmill is where you submit and inspect the durable task queue. These addresses are private to devices allowed into your tailnet. The HAPI URL uses port 10000 because a production container already occupies port 443 on this host. Tailscale is an optional, separate installation on other servers; the small setup script does not alter network configuration.
+
 ## Sign in and try one task
 
-Sign the `ae-lab` runner into **one** Codex account. The CLI prints a URL and device code; complete the sign-in in a browser on your computer. Do not paste credentials into the server chat or repository.
+Sign the `ae-lab` runner into **one** Codex account. The CLI prints a URL and device code; complete the sign-in in a browser on your computer. Sign in to Claude Code separately if you want to run Claude tasks. Do not paste credentials into the server chat or repository.
 
 ```bash
 sudo -u ae-lab -H /opt/ae-small/bin/codex login --device-auth
+sudo -iu ae-lab /home/ae-lab/.local/bin/claude
 sudo /home/ae-lab/agentic-environment/ae-small register diffmind https://github.com/mohammad-safakhou/diffmind.git 'test -f go.mod'
 sudo /home/ae-lab/agentic-environment/ae-small connect-windmill YOUR_WORKSPACE_ID
 ```
 
 The Windmill connection command asks for a workspace token from the Windmill UI and imports the task scripts and schedules. Run `f/ae/submit` with repository `diffmind`, a small documentation-only instruction, and `review_policy=skip`. Windmill advances the task; HAPI shows the Codex session; the integration API creates a worktree and runs the validation check. A successful small-profile task ends with a local branch and commit in `/home/ae-lab/workspaces`, with no draft PR.
 
-One Codex login is enough for the first test. The second Codex account is not used automatically. This profile has one concurrent task slot, and the current independent-review rule treats Codex as one provider even if two accounts exist.
+One Codex login is enough for the first test. The second Codex account is not used automatically. This profile has one concurrent task slot, and the current independent-review rule treats Codex as one provider even if two accounts exist. New tasks are started automatically from the Windmill queue. A configured Claude worker can be selected for a task or used as a spawn-time fallback if Codex is unavailable; switching an already running task to Claude still requires an explicit fallback action after a failure.
 
 ## Operate
 
