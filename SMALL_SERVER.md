@@ -25,7 +25,7 @@ Run this on your own computer and leave the tunnel open:
 ssh -N -L 38000:127.0.0.1:38000 -L 39444:127.0.0.1:39444 agentic@2.28.57.254
 ```
 
-Open `http://127.0.0.1:38000` for Windmill and `http://127.0.0.1:39444` for HAPI. Complete Windmill's first login, change the initial administrator password immediately, and create a workspace. The interfaces are not exposed on the server's public IP.
+Open `http://127.0.0.1:38000` for Windmill and `http://127.0.0.1:39444` for HAPI. Windmill's initial login is `admin@windmill.dev` / `changeme`; complete its first-run setup, replace that administrator credential immediately, and create a workspace. The interfaces are not exposed on the server's public IP.
 
 ## Sign in and try one task
 
