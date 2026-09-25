@@ -16,6 +16,19 @@ fi
 if (( $(df -BG --output=avail . | tail -1 | tr -dc '0-9') < 80 )); then
   echo 'At least 80 GB free disk is required' >&2; exit 1
 fi
+for account in ae-platform ae-agent; do
+  if ! id "$account" >/dev/null 2>&1; then
+    echo "Create the $account account manually before running setup; see README.md" >&2
+    exit 1
+  fi
+done
+if [[ "$(getent passwd ae-platform | cut -d: -f6)" != /var/lib/agentic-environment ]] ||
+   [[ "$(getent passwd ae-agent | cut -d: -f6)" != /home/ae-agent ]]; then
+  echo 'Account home directories must match the paths in README.md' >&2; exit 1
+fi
+if id -nG ae-agent | tr ' ' '\n' | grep -Eq '^(sudo|docker)$'; then
+  echo 'Remove ae-agent from sudo and docker groups before setup' >&2; exit 1
+fi
 for port in 3000 3006 5433 8000 8090 8765 9898; do
   if ss -ltn | awk '{print $4}' | grep -Eq ":${port}$"; then
     if [[ ! -f .env && ! -f /opt/agentic-environment/.env ]]; then echo "Port $port is already in use" >&2; exit 1; fi
@@ -43,8 +56,6 @@ if ! tailscale status >/dev/null 2>&1; then
   tailscale up
 fi
 
-id ae-platform >/dev/null 2>&1 || useradd --system --create-home --home-dir /var/lib/agentic-environment --shell /usr/sbin/nologin ae-platform
-id ae-agent >/dev/null 2>&1 || useradd --system --create-home --home-dir /home/ae-agent --shell /usr/sbin/nologin ae-agent
 install -d -m 700 -o ae-platform -g ae-platform /var/lib/agentic-environment/hapi
 install -d -m 700 /var/lib/agentic-environment/gh
 install -d -m 700 -o ae-agent -g ae-agent /home/ae-agent/repos /home/ae-agent/workspaces

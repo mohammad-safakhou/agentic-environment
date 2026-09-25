@@ -11,6 +11,17 @@ An isolated one-slot pilot on a smaller shared server is documented in [PILOT.md
 - At least one provider sign-in for Codex, Claude Code or OpenCode.
 - A remote restic repository and password for backups before production use.
 
+## Prepare service accounts
+
+The machine owner creates the service accounts before setup. Setup checks their names and home directories, but does not create accounts or change their group memberships. On a fresh Ubuntu host, one way to create them is:
+
+```bash
+sudo useradd --system --user-group --create-home --home-dir /var/lib/agentic-environment --shell /usr/sbin/nologin ae-platform
+sudo useradd --system --user-group --create-home --home-dir /home/ae-agent --shell /usr/sbin/nologin ae-agent
+```
+
+Keep `ae-agent` out of the `sudo` and `docker` groups. If these accounts already exist, check their home directories and group memberships instead of running `useradd` again. The one-slot server pilot in [PILOT.md](PILOT.md) is a separate manual deployment and does not use these full-install accounts.
+
 ## Install
 
 ```bash
