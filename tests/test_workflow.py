@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from ae_core.workflow import advance, cancel, parse_review, requires_review, retry_publish, safe_name
+from ae_core.workflow import (advance, authenticated, cancel, parse_review,
+                              provider_limit_reached, requires_review, retry_publish, safe_name)
 
 
 class WorkflowTests(unittest.TestCase):
@@ -68,6 +69,47 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(parse_review(messages)["findings"][0]["file"], "src/a.py")
         with self.assertRaises(RuntimeError):
             parse_review([{"content": {"role": "agent", "content": {"data": {"message": "Looks good"}}}}])
+
+    @patch("ae_core.workflow.command")
+    def test_claude_auth_requires_logged_in_status(self, command):
+        command.return_value.returncode = 0
+        command.return_value.stdout = '{"loggedIn": false}'
+        self.assertFalse(authenticated("claude"))
+        command.return_value.stdout = '{"loggedIn": true}'
+        self.assertTrue(authenticated("claude"))
+
+    def test_provider_limit_requires_structured_signal(self):
+        reached = {"content": {"role": "agent", "content": {
+            "type": "event", "data": {"type": "limit-reached", "limitType": "five-hour"}}}}
+        warning = {"content": {"role": "agent", "content": {
+            "type": "event", "data": {"type": "limit-warning", "utilization": .9}}}}
+        prose = {"content": {"role": "agent", "content": {
+            "type": "codex", "data": {"type": "message", "message": "I reached a limit"}}}}
+        self.assertEqual(provider_limit_reached([warning, reached]), "Provider limit reached")
+        self.assertIsNone(provider_limit_reached([warning, prose]))
+
+    @patch("ae_core.workflow.fallback_attempt")
+    @patch("ae_core.workflow.fail")
+    @patch("ae_core.workflow.authenticated", return_value=True)
+    @patch("ae_core.workflow.repo_config", return_value=({"fallback_worker": "claude"}, None))
+    @patch("ae_core.workflow.HapiClient")
+    @patch("ae_core.workflow.store")
+    @patch("ae_core.workflow.load_config", return_value={})
+    def test_limit_event_hands_codex_task_to_claude(self, load_config, store, client_type,
+                                                    repo_config, authenticated, fail, fallback):
+        store.get.return_value = {"state": "implementing", "cancel_requested": False,
+                                  "selected_worker": "codex", "session_id": "session-1",
+                                  "repository": "example"}
+        client_type.return_value.session.return_value = {"active": True, "thinking": False}
+        client_type.return_value.messages.return_value = [{"content": {"role": "agent", "content": {
+            "type": "event", "data": {"type": "limit-reached"}}}}]
+        fallback.return_value = {"state": "spawning", "worker": "claude"}
+
+        result = advance("task-id")
+
+        self.assertEqual(result["worker"], "claude")
+        fail.assert_called_once_with("task-id", "Provider limit reached")
+        fallback.assert_called_once_with("task-id")
 
     @patch("ae_core.workflow.store")
     @patch("ae_core.workflow.command")

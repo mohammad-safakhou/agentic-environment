@@ -46,6 +46,11 @@ def authenticated(worker):
         return False
     if result.returncode != 0:
         return False
+    if worker == "claude":
+        try:
+            return json.loads(result.stdout).get("loggedIn") is True
+        except (ValueError, AttributeError):
+            return False
     if worker == "opencode":
         return "openrouter" in result.stdout.lower()
     return True
@@ -113,6 +118,27 @@ def parse_review(messages):
             if isinstance(result, dict) and isinstance(result.get("findings"), list):
                 return result
     raise RuntimeError("Reviewer did not return a JSON findings list")
+
+
+def provider_limit_reached(messages):
+    """Recognize only HAPI's structured provider limit signals."""
+    for item in reversed(messages):
+        envelope = item.get("content") or {}
+        if not isinstance(envelope, dict) or envelope.get("role") != "agent":
+            continue
+        payload = envelope.get("content") or {}
+        if not isinstance(payload, dict):
+            continue
+        data = payload.get("data") or {}
+        if not isinstance(data, dict):
+            continue
+        if payload.get("type") == "event" and data.get("type") == "limit-reached":
+            return "Provider limit reached"
+        if payload.get("type") == "codex" and data.get("type") == "thread_goal_updated":
+            goal = data.get("goal") or {}
+            if isinstance(goal, dict) and goal.get("status") == "usageLimited":
+                return "Codex usage limit reached"
+    return None
 
 
 def route(task, config, hapi, machine_id):
@@ -329,6 +355,15 @@ def advance(task_id):
         return fail(task_id, "Message delivery unresolved; inspect HAPI before retry")
     if state == "implementing":
         session = HapiClient().session(task["session_id"])
+        if task["selected_worker"] == "codex" and (not session.get("active") or not session.get("thinking")):
+            limit_reason = provider_limit_reached(HapiClient().messages(task["session_id"]))
+            if limit_reason:
+                repo, _ = repo_config(config, task["repository"])
+                fallback = repo.get("fallback_worker", config.get("fallback_worker"))
+                if fallback == "claude" and authenticated("claude"):
+                    fail(task_id, limit_reason)
+                    return fallback_attempt(task_id)
+                return fail(task_id, f"{limit_reason}; Claude fallback is not configured or signed in")
         if not session.get("active"):
             return fail(task_id, "Agent session stopped; inspect worktree and resume explicitly")
         if (session.get("agentState") or {}).get("requests"):
@@ -595,7 +630,7 @@ def fallback_attempt(task_id):
             command(["hapi", "runner", "stop-session", task["session_id"]], agent=True)
             if hapi.session(task["session_id"]).get("active"):
                 raise RuntimeError("Previous agent is still active")
-    commit = command(["git", "rev-parse", "HEAD"], cwd=task["worktree"], agent=True).stdout.strip()
+    commit = commit_work(task)
     handoff = {"repository": task["repository"], "base_branch": task["base_branch"],
                "working_commit": commit, "instruction": task["instruction"],
                "checks": task["checks"], "review": task["review"],
@@ -606,7 +641,7 @@ def fallback_attempt(task_id):
         store.update(conn, task_id, state="spawning", worker=fallback,
                      selected_worker=None, selected_model=None, session_id=None,
                      message_id=None, attempt=task["attempt"] + 1,
-                     handoff=json.dumps(handoff), error=None)
+                     handoff=json.dumps(handoff), error=None, failed_stage=None)
         store.event(conn, task_id, "fallback_attempt_started",
                     {"worker": fallback, "attempt": task["attempt"] + 1, "commit": commit})
     return store.get(task_id)

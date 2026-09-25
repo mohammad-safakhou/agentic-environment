@@ -131,6 +131,7 @@ config = root / 'config.json'
 if not config.exists():
     value = json.loads(pathlib.Path('/opt/ae-small/config.example.json').read_text())
     value['minimum_free_gb'] = 2
+    value['fallback_worker'] = 'claude'
     config.write_text(json.dumps(value, indent=2) + '\n')
     config.chmod(0o600)
 for name in ('postgres-password', 'api-token'):

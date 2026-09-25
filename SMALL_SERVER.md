@@ -59,7 +59,7 @@ sudo /home/ae-lab/agentic-environment/ae-small connect-windmill YOUR_WORKSPACE_I
 
 The Windmill connection command asks for a workspace token from the Windmill UI and imports the task scripts and schedules. Run `f/ae/submit` with repository `diffmind`, a small documentation-only instruction, and `review_policy=skip`. Windmill advances the task; HAPI shows the Codex session; the integration API creates a worktree and runs the validation check. A successful small-profile task ends with a local branch and commit in `/home/ae-lab/workspaces`, with no draft PR.
 
-One Codex login is enough for the first test. The second Codex account is not used automatically. This profile has one concurrent task slot, and the current independent-review rule treats Codex as one provider even if two accounts exist. New tasks are started automatically from the Windmill queue. A configured Claude worker can be selected for a task or used as a spawn-time fallback if Codex is unavailable; switching an already running task to Claude still requires an explicit fallback action after a failure.
+One Codex login is enough for the first test. The second Codex account is not used automatically. This profile has one concurrent task slot, and the current independent-review rule treats Codex as one provider even if two accounts exist. New tasks are started automatically from the Windmill queue. The small profile configures Claude as fallback: it can take a task at spawn time if Codex is unavailable, or continue an existing Codex task when HAPI reports a structured provider-limit event. Claude must be signed in for that handoff. Other agent errors stop for inspection.
 
 ## Operate
 
