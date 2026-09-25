@@ -1,0 +1,13 @@
+{
+  "repositories": {},
+  "personal_context": "",
+  "default_worker": "codex",
+  "fallback_worker": null,
+  "openrouter_monthly_usd": 20,
+  "openrouter_models": [],
+  "openrouter_key_file": "",
+  "minimum_free_gb": 10,
+  "backup_repository": "",
+  "backup_password_file": "",
+  "github_host": "github.com"
+}

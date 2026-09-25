@@ -1,0 +1,32 @@
+- Tasks and attention:
+    - Task status:
+        href: https://{{HOMEPAGE_VAR_HOST}}:8444
+        description: Active tasks and attention inbox
+        widget:
+          type: customapi
+          url: http://host.docker.internal:8765/status
+          headers:
+            Authorization: Bearer {{HOMEPAGE_VAR_API_TOKEN}}
+          mappings:
+            - field: active
+              label: Active
+              format: number
+            - field: queued
+              label: Queued
+              format: number
+            - field: needs_you
+              label: Needs you
+              format: number
+    - Windmill:
+        href: https://{{HOMEPAGE_VAR_HOST}}:8444
+        description: Submit and inspect workflows
+    - HAPI:
+        href: https://{{HOMEPAGE_VAR_HOST}}:8445
+        description: Sessions and approvals
+- Operations:
+    - Beszel:
+        href: https://{{HOMEPAGE_VAR_HOST}}:8446
+        description: Server health
+    - Backrest:
+        href: https://{{HOMEPAGE_VAR_HOST}}:8447
+        description: Encrypted backups

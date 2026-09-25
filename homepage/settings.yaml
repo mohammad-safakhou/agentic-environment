@@ -1,0 +1,10 @@
+title: Agent Environment
+theme: dark
+color: slate
+layout:
+  Tasks and attention:
+    style: row
+    columns: 2
+  Operations:
+    style: row
+    columns: 2

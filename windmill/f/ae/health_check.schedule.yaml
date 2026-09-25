@@ -1,0 +1,7 @@
+schedule: 0 */5 * * * *
+on_failure: ""
+script_path: f/ae/health_check
+args: {}
+timezone: Europe/Berlin
+is_flow: false
+enabled: true

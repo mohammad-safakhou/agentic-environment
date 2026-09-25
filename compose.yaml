@@ -1,0 +1,110 @@
+services:
+  postgres:
+    image: postgres:${POSTGRES_VERSION}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ae
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: windmill
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ae -d windmill"]
+      interval: 10s
+      retries: 12
+
+  windmill_server:
+    image: ghcr.io/windmill-labs/windmill:${WINDMILL_VERSION}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://ae:${POSTGRES_PASSWORD}@postgres:5432/windmill
+      MODE: server
+      BASE_URL: ${WINDMILL_PUBLIC_URL}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  windmill_worker:
+    image: ghcr.io/windmill-labs/windmill:${WINDMILL_VERSION}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://ae:${POSTGRES_PASSWORD}@postgres:5432/windmill
+      MODE: worker
+      WORKER_GROUP: default
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 3G
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:${HOMEPAGE_VERSION}
+    restart: unless-stopped
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: ${TAILSCALE_HOST}:8443
+      HOMEPAGE_VAR_HOST: ${TAILSCALE_HOST}
+      HOMEPAGE_VAR_API_TOKEN: ${AE_API_TOKEN}
+    ports:
+      - "127.0.0.1:3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./homepage:/app/config:ro
+
+  beszel:
+    image: henrygd/beszel:${BESZEL_VERSION}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8090:8090"
+    environment:
+      APP_URL: https://${TAILSCALE_HOST}:8446
+    volumes:
+      - beszel_data:/beszel_data
+      - beszel_socket:/beszel_socket
+
+  beszel_agent:
+    image: henrygd/beszel-agent:${BESZEL_VERSION}
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      LISTEN: /beszel_socket/beszel.sock
+      HUB_URL: http://127.0.0.1:8090
+      KEY: ${BESZEL_KEY:-}
+      TOKEN: ${BESZEL_TOKEN:-}
+    volumes:
+      - beszel_socket:/beszel_socket
+      - beszel_agent_data:/var/lib/beszel-agent
+
+  backrest:
+    image: garethgeorge/backrest:${BACKREST_VERSION}
+    restart: unless-stopped
+    environment:
+      BACKREST_DATA: /data
+      BACKREST_CONFIG: /config/config.json
+      XDG_CACHE_HOME: /cache
+    ports:
+      - "127.0.0.1:9898:9898"
+    volumes:
+      - backrest_data:/data
+      - backrest_config:/config
+      - backrest_cache:/cache
+      - ./backups:/backups
+
+volumes:
+  pgdata:
+  beszel_data:
+  beszel_socket:
+  beszel_agent_data:
+  backrest_data:
+  backrest_config:
+  backrest_cache:

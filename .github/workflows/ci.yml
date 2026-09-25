@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  repository-checks:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16.10
+        env:
+          POSTGRES_PASSWORD: testpass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      AE_DATABASE_URL: postgresql://postgres:testpass@127.0.0.1:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Python dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -r requirements.txt
+      - name: Check shell and Python syntax
+        run: |
+          bash -n ae scripts/*.sh
+          .venv/bin/python -m compileall -q ae_core scripts windmill
+      - name: Validate Compose configuration
+        run: |
+          set -a
+          source versions.env
+          set +a
+          POSTGRES_PASSWORD=dummy AE_API_TOKEN=dummy TAILSCALE_HOST=example.ts.net \
+            WINDMILL_PUBLIC_URL=https://example.ts.net:8444 docker compose config --quiet
+      - name: Run tests against PostgreSQL
+        run: .venv/bin/python -m unittest discover -s tests -v

@@ -1,0 +1,21 @@
+[Unit]
+Description=HAPI agent runner
+After=hapi-hub.service
+Requires=hapi-hub.service
+
+[Service]
+User=ae-agent
+Group=ae-agent
+EnvironmentFile=/etc/agentic-environment/runner.env
+Environment=HAPI_RUNNER_SUPERVISED=1
+KillMode=process
+ExecStart=/opt/agentic-environment/runtime/npm/node_modules/@twsxtd/hapi-linux-x64/bin/hapi runner start-sync --workspace-root /home/ae-agent/workspaces
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/home/ae-agent
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,7 @@
+schedule: 0 0 9 * * 1
+on_failure: ""
+script_path: f/ae/weekly_summary
+args: {}
+timezone: Europe/Berlin
+is_flow: false
+enabled: true

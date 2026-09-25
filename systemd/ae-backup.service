@@ -1,0 +1,7 @@
+[Unit]
+Description=Agent Environment encrypted backup
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/agentic-environment/scripts/backup.sh

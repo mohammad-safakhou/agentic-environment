@@ -1,0 +1,21 @@
+[Unit]
+Description=Agent Environment integration API
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+EnvironmentFile=/etc/agentic-environment/api.env
+WorkingDirectory=/opt/agentic-environment
+ExecStart=/opt/agentic-environment/.venv/bin/python -m ae_core.server
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/agentic-environment /home/ae-agent/workspaces /home/ae-agent/repos
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

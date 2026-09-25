@@ -1,0 +1,45 @@
+summary: ''
+description: ''
+lock: '!inline f/ae/submit.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    base_branch:
+      type: string
+      description: ''
+      default: ''
+      originalType: string
+    budget_usd:
+      type: number
+      description: ''
+      default: 0
+    category:
+      type: string
+      description: ''
+      default: general
+      originalType: string
+    instruction:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    repository:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+    review_policy:
+      type: string
+      description: ''
+      default: auto
+      originalType: string
+    worker:
+      type: string
+      description: ''
+      default: ''
+      originalType: string
+  required:
+    - repository
+    - instruction

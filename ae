@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$(realpath "$0")")"
+if [[ "${1:-}" != setup && -f /opt/agentic-environment/versions.env ]]; then
+  cd /opt/agentic-environment
+fi
+set -a
+source versions.env
+set +a
+command_name="${1:-help}"
+shift || true
+
+case "$command_name" in
+  setup) exec sudo bash scripts/setup.sh "$@" ;;
+  doctor) exec bash scripts/doctor.sh "$@" ;;
+  start) sudo docker compose --env-file .env up -d; exec sudo systemctl start hapi-hub hapi-runner ae-api ;;
+  stop) sudo systemctl stop ae-api hapi-runner hapi-hub; exec sudo docker compose --env-file .env stop ;;
+  status) sudo docker compose --env-file .env ps; systemctl --no-pager --full status hapi-hub hapi-runner ae-api || true ;;
+  logs) exec sudo docker compose --env-file .env logs --tail=100 -f "$@" ;;
+  register) exec sudo python3 scripts/register.py "$@" ;;
+  connect-windmill) exec bash scripts/connect-windmill.sh "$@" ;;
+  enable-monitoring) exec sudo bash scripts/enable-monitoring.sh "$@" ;;
+  update) exec sudo bash scripts/update.sh "$@" ;;
+  backup) exec sudo bash scripts/backup.sh "$@" ;;
+  restore) exec sudo bash scripts/restore.sh "$@" ;;
+  *) cat <<'EOF'
+Usage: ./ae {setup|register|connect-windmill|enable-monitoring|doctor|status|start|stop|logs|update|backup|restore}
+EOF
+  ;;
+esac

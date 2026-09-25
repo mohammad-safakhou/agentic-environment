@@ -1,0 +1,22 @@
+[Unit]
+Description=HAPI hub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ae-platform
+Group=ae-platform
+Environment=HAPI_LISTEN_HOST=127.0.0.1
+Environment=HAPI_LISTEN_PORT=3006
+Environment=HAPI_HOME=/var/lib/agentic-environment/hapi
+Environment=PATH=/opt/agentic-environment/bin:/opt/agentic-environment/runtime/node/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/etc/agentic-environment/hub.env
+ExecStart=/opt/agentic-environment/runtime/npm/node_modules/@twsxtd/hapi-linux-x64/bin/hapi hub --no-relay
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/agentic-environment/hapi
+
+[Install]
+WantedBy=multi-user.target
