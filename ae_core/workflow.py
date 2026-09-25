@@ -527,7 +527,7 @@ def retry_publish(task_id):
         raise ValueError("Validation must pass before publishing")
     # First reconcile the external state; PR creation may have succeeded before
     # the previous attempt lost its response.
-    url = existing_pr(task, load_config())
+    url = None if os.environ.get("AE_PUBLISH_MODE") == "local" else existing_pr(task, load_config())
     with store.locked_task(task_id) as (conn, current):
         if current["state"] != "needs_you":
             return current

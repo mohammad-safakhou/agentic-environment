@@ -283,6 +283,7 @@ AE_DATABASE_URL=$database_url
 AE_API_TOKEN=$(cat /etc/ae-small/api-token)
 AE_HAPI_TOKEN=$hapi_token
 AE_HAPI_URL=http://127.0.0.1:39444
+HAPI_HOME=/home/ae-lab/hapi-runner
 CLI_API_TOKEN=$hapi_token
 HAPI_API_URL=http://127.0.0.1:39444
 AE_BIND_HOST=127.0.0.1

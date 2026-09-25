@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from ae_core.workflow import advance, cancel, parse_review, requires_review, safe_name
+from ae_core.workflow import advance, cancel, parse_review, requires_review, retry_publish, safe_name
 
 
 class WorkflowTests(unittest.TestCase):
@@ -36,6 +36,24 @@ class WorkflowTests(unittest.TestCase):
         store.event.assert_called_once_with(locked.__enter__.return_value[0],
                                             "task-id", "local_result_ready",
                                             {"branch": "codex/test", "commit": "abc123"})
+
+    @patch.dict("os.environ", {"AE_PUBLISH_MODE": "local"})
+    @patch("ae_core.workflow.existing_pr")
+    @patch("ae_core.workflow.store")
+    def test_local_publish_retry_does_not_query_github(self, store, existing_pr):
+        task = {"state": "needs_you", "failed_stage": "publishing", "cancel_requested": False,
+                "commit_sha": "abc123", "branch": "codex/test", "worktree": "/tmp/test",
+                "checks": [{"exit_code": 0}]}
+        store.get.return_value = task
+        locked = MagicMock()
+        locked.__enter__.return_value = (MagicMock(), task)
+        store.locked_task.return_value = locked
+
+        retry_publish("task-id")
+
+        existing_pr.assert_not_called()
+        store.update.assert_called_once_with(locked.__enter__.return_value[0], "task-id",
+                                             state="publishing", error=None, failed_stage=None)
 
     def test_repository_name_rejects_path_escape(self):
         for value in ("../etc", "x/../y", "-bad", ""):
